@@ -73,4 +73,6 @@ wtap_open_return_val pcapng_open(wtap *wth, int *err, gchar **err_info);
 gboolean pcapng_dump_open(wtap_dumper *wdh, int *err);
 int pcapng_dump_can_write_encap(int encap);
 
+WS_DLL_PUBLIC gboolean pcapng_write_if_descr_block(wtap_dumper *wdh, wtap_block_t int_data, int *err);
+
 #endif

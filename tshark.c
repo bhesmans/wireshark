@@ -3028,11 +3028,46 @@ process_packet_second_pass(capture_file *cf, epan_dissect_t *edt,
   return passed || fdata->flags.dependent_of_displayed;
 }
 
+static void
+copy_itf_data(wtap *from, wtap_dumper *to) {
+  wtapng_iface_descriptions_t *idb_info = NULL, *idb_dumper_info;
+  wtap_block_t descr, file_int_data;
+  int from_count, to_count, copy_idx, err;
+
+  idb_info = wtap_file_get_idb_info(from);
+  idb_dumper_info = wtap_dumper_file_get_idb_info(to);
+
+  from_count = idb_info->interface_data->len;
+  to_count = idb_dumper_info->interface_data->len;
+
+  if (from_count > to_count) {
+    for(copy_idx = to_count; copy_idx < from_count; copy_idx++) {
+      file_int_data = g_array_index(idb_info->interface_data, wtap_block_t, copy_idx);
+      descr = wtap_block_create(WTAP_BLOCK_IF_DESCR);
+      wtap_block_copy(descr, file_int_data);
+
+      g_array_append_val(idb_dumper_info->interface_data, descr);
+
+      wtap_block_t idb;
+
+      idb = g_array_index(idb_info->interface_data, wtap_block_t, copy_idx);
+
+      if (!pcapng_write_if_descr_block(to, idb, &err)) {
+        fprintf(stderr, "Can't write if descr block\n");
+      }
+    }
+  }
+  g_free(idb_info);
+  g_free(idb_dumper_info);
+
+  return;
+}
+
 static gboolean
 process_cap_file(capture_file *cf, char *save_file, int out_file_type,
     gboolean out_file_name_res, int max_packet_count, gint64 max_byte_count)
 {
-  gboolean     success = TRUE;
+  gboolean     success = TRUE, copy_itf = FALSE;
   gint         linktype;
   int          snapshot_length;
   wtap_dumper *pdh;
@@ -3054,11 +3089,7 @@ process_cap_file(capture_file *cf, char *save_file, int out_file_type,
 
   idb_inf = wtap_file_get_idb_info(cf->wth);
 #ifdef PCAP_NG_DEFAULT
-  if (idb_inf->interface_data->len > 1) {
-    linktype = WTAP_ENCAP_PER_PACKET;
-  } else {
-    linktype = wtap_file_encap(cf->wth);
-  }
+  linktype = WTAP_ENCAP_PER_PACKET;
 #else
   linktype = wtap_file_encap(cf->wth);
 #endif
@@ -3099,6 +3130,7 @@ process_cap_file(capture_file *cf, char *save_file, int out_file_type,
           pdh = wtap_dump_open_stdout_ng(out_file_type, linktype,
               snapshot_length, FALSE /* compressed */, shb_hdrs, idb_inf, nrb_hdrs, &err);
         } else {
+          copy_itf = TRUE;
           pdh = wtap_dump_open_ng(save_file, out_file_type, linktype,
               snapshot_length, FALSE /* compressed */, shb_hdrs, idb_inf, nrb_hdrs, &err);
         }
@@ -3340,6 +3372,8 @@ process_cap_file(capture_file *cf, char *save_file, int out_file_type,
            this packet out. */
         if (pdh != NULL) {
           tshark_debug("tshark: writing packet #%d to outfile", framenum);
+          if(copy_itf)
+            copy_itf_data(cf->wth, pdh);
           if (!wtap_dump(pdh, wtap_phdr(cf->wth), wtap_buf_ptr(cf->wth), &err, &err_info)) {
             /* Error writing to a capture file */
             tshark_debug("tshark: error writing to a capture file (%d)", err);

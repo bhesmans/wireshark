@@ -1666,6 +1666,12 @@ WS_DLL_PUBLIC
 wtapng_iface_descriptions_t *wtap_file_get_idb_info(wtap *wth);
 
 /**
+ * @see wtapng_iface_descriptions_t *wtap_file_get_idb_info(wtap *wth)
+ */
+WS_DLL_PUBLIC
+wtapng_iface_descriptions_t *wtap_dumper_file_get_idb_info(wtap_dumper *wth);
+
+/**
  * @brief Free's a interface description block and all of its members.
  *
  * @details This free's all of the interface descriptions inside the passed-in

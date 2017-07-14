@@ -212,6 +212,18 @@ wtap_file_get_idb_info(wtap *wth)
 	return idb_info;
 }
 
+wtapng_iface_descriptions_t *
+wtap_dumper_file_get_idb_info(wtap_dumper *wth)
+{
+	wtapng_iface_descriptions_t *idb_info;
+
+	idb_info = g_new(wtapng_iface_descriptions_t,1);
+
+	idb_info->interface_data	= wth->interface_data;
+
+	return idb_info;
+}
+
 
 void
 wtap_free_idb_info(wtapng_iface_descriptions_t *idb_info)

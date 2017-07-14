@@ -3965,7 +3965,7 @@ static void write_wtap_idb_option(wtap_block_t block _U_, guint option_id, wtap_
     }
 }
 
-static gboolean
+gboolean
 pcapng_write_if_descr_block(wtap_dumper *wdh, wtap_block_t int_data, int *err)
 {
     pcapng_block_header_t bh;
